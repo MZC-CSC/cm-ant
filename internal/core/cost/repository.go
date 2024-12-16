@@ -130,7 +130,7 @@ func (r *CostRepository) GetMatchingEstimateCostTx(ctx context.Context, param Re
 	err := r.execInTransaction(ctx, func(d *gorm.DB) error {
 		q := d.Model(&EstimateCostInfo{}).
 			Where(
-				"LOWER(provider_name) = ? AND LOWER(region_name) = ? AND instance_type  = ? AND price_policy = ? AND last_updated_at >= ?",
+				"LOWER(provider_name) = ? AND LOWER(region_name) = ? AND LOWER(instance_type) = ? AND price_policy = ? AND last_updated_at >= ?",
 				strings.ToLower(param.ProviderName),
 				strings.ToLower(param.RegionName),
 				strings.ToLower(param.InstanceType),
@@ -261,7 +261,6 @@ func (r *CostRepository) GetEstimateForecastCostInfosTx(ctx context.Context, par
 			query = query.Select("provider, resource_type, category, actual_resource_id, unit, DATE_TRUNC('month', start_date) AS date, SUM(cost) AS total_cost").
 				Group("provider, resource_type, category, actual_resource_id, unit, date")
 		}
-
 
 		if err := d.Table("(?) AS sub", query).Count(&totalRows).Error; err != nil {
 			return err

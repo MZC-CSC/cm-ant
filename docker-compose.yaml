@@ -25,9 +25,9 @@ services:
       - ANT_DATABASE_HOST=ant-postgres
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8880/ant/readyz" ]
-      interval: 1m
-      timeout: 7s
-      retries: 5
+      interval: 30s
+      timeout: 5s
+      retries: 3
       start_period: 10s
     restart: unless-stopped
 
@@ -44,16 +44,16 @@ services:
       - cm-ant-net
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "cm-ant-user", "-d", "cm-ant-db" ]
-      interval: 1m
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
       start_period: 10s
     restart: unless-stopped
 
   cb-tumblebug:
-    image: cloudbaristaorg/cb-tumblebug:0.11.9
+    image: cloudbaristaorg/cb-tumblebug:0.11.13
     container_name: cb-tumblebug
-    pull_policy: missing
+    pull_policy: always
     platform: linux/amd64
     ports:
       - 1323:1323
@@ -76,9 +76,9 @@ services:
       - TB_SPIDER_REST_URL=http://cb-spider:1024/spider
       - TB_ETCD_ENDPOINTS=http://cb-tumblebug-etcd:2379
       - TB_POSTGRES_ENDPOINT=cb-tumblebug-postgres:5432
-      - TB_POSTGRES_DATABASE=cb_tumblebug
-      - TB_POSTGRES_USER=cb_tumblebug
-      - TB_POSTGRES_PASSWORD=cb_tumblebug
+      - TB_POSTGRES_DATABASE=tumblebug
+      - TB_POSTGRES_USER=tumblebug
+      - TB_POSTGRES_PASSWORD=tumblebug
       # - TB_ETCD_AUTH_ENABLED=false
       # - TB_ETCD_USERNAME=default
       # - TB_ETCD_PASSWORD=default
@@ -102,7 +102,7 @@ services:
       # - TB_NODE_ENV=development
     healthcheck: # for CB-Tumblebug
       test: [ "CMD", "curl", "-f", "http://localhost:1323/tumblebug/readyz" ]
-      interval: 1m
+      interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
@@ -121,14 +121,14 @@ services:
     volumes:
       - ./container-volume/cb-tumblebug/meta_db/postgres:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=cb_tumblebug
-      - POSTGRES_PASSWORD=cb_tumblebug
-      - POSTGRES_DB=cb_tumblebug
+      - POSTGRES_USER=tumblebug
+      - POSTGRES_PASSWORD=tumblebug
+      - POSTGRES_DB=tumblebug
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cb_tumblebug"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U tumblebug"]
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
       start_period: 10s
 
   cb-tumblebug-etcd:
@@ -171,15 +171,15 @@ services:
       - simple
     healthcheck:
       test: [  "CMD", "/usr/local/bin/etcd", "--version"]
-      interval: 1m
+      interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
     restart: unless-stopped
 
   cb-spider:
-    image: cloudbaristaorg/cb-spider:0.11.5
-    pull_policy: missing
+    image: cloudbaristaorg/cb-spider:0.11.13
+    pull_policy: always
     container_name: cb-spider 
     platform: linux/amd64
     networks:
@@ -198,7 +198,7 @@ services:
       - ID_TRANSFORM_MODE=OFF
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:1024/spider/readyz" ]
-      interval: 1m
+      interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s

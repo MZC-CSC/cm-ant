@@ -20,7 +20,7 @@ import (
 // InitRouter initializes the routing for CM-ANT API server.
 
 // @title CM-ANT REST API
-// @version 0.3.4
+// @version 0.4.0
 // @description CM-ANT REST API swagger document.
 // @basePath /ant
 

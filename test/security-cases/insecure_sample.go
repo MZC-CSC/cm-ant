@@ -7,8 +7,9 @@ import (
 	"math/rand"
 )
 
-// dbPassword 는 하드코딩 비밀번호 — gosec G101 유발용 더미 값.
-const dbPassword = "P@ssw0rd_test_dummy_123"
+// apiSecret 는 하드코딩 시크릿 — gosec G101 유발용 더미 값.
+// (저엔트로피 값은 gosec 엔트로피 임계값에 안 걸리므로 고엔트로피 더미 사용)
+const apiSecret = "kJ8sJ2mNp4Qr7Tv0WxZ1aBc3DeF5gHi"
 
 // WeakToken 은 암호학적으로 안전하지 않은 난수 사용 — gosec G404 유발용.
 func WeakToken() string {
@@ -17,5 +18,5 @@ func WeakToken() string {
 
 // DummyUse 는 위 더미 값들을 참조해 컴파일이 되도록 한다(미사용 경고 방지).
 func DummyUse() string {
-	return dbPassword + ":" + WeakToken()
+	return apiSecret + ":" + WeakToken()
 }

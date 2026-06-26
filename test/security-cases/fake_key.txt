@@ -1,0 +1,8 @@
+# 더미 PRIVATE KEY (gitleaks private-key 발화용 — 가짜).
+# .pem 은 .gitignore(*.pem)로 추적 제외되므로, 추적되는 .txt에 넣어 검증한다
+# (실수로 키를 설정/텍스트 파일에 붙여넣는 현실 시나리오).
+-----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Q
+uKUpRKfFLfRYC9AIKjbJTWit+CqvjG1lP2eDUMMM3ThIsAFakeDummyKeyForTest
+ONLYDoNotUseAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+-----END RSA PRIVATE KEY-----

@@ -4,7 +4,8 @@
 
 | 파일 | 의도한 결함 | 기대 발화 게이트 |
 |------|-----------|----------------|
-| `fake_key.pem` | 더미 PRIVATE KEY 블록 | gitleaks |
+| `fake_key.txt` | 더미 PRIVATE KEY 블록 (`.pem`은 `.gitignore`로 추적 제외라 `.txt`에 넣음) | gitleaks(private-key) |
+| `fake_aws.txt` | 더미 AWS 키 | gitleaks(aws-access-token·generic-api-key) |
 | `insecure_sample.go` | 하드코딩 비밀번호(G101)·약한 난수(G404) | gosec |
 | `Dockerfile` | `latest` 태그·`USER root` 미스컨피그 | Trivy(misconfig) |
 

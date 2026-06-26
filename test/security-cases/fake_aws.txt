@@ -1,0 +1,3 @@
+# 더미 AWS 자격증명 (gitleaks 발화용 — 모두 가짜 값, 실제 자격증명 아님)
+aws_access_key_id = AKIAQYLPMN5HABCDEF12
+aws_secret_access_key = wJalrXUtnFEMI7K7MDENGbPxRfiCYzZ9aBcDeFgH

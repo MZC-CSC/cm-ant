@@ -1,13 +1,10 @@
 # ------------------------------------------------------------
 # Security Gate (PoC / 검증 전용 사본)
 #
-# 본 파일은 보안 게이트 발화 검증을 위한 테스트 사본이다. 표준 원본은
-# cmig-workflow/conf/workflow-templates/security-gate.yml 이며, 본 사본은
-# test-security-gate-cases 브랜치에 push 될 때 발화하도록 트리거만 바꿨다.
-# 이 브랜치는 develop/upstream 에 머지하지 않는다. (POLICY-SECURITY §9.1)
-#
-# 경고 모드: 모든 게이트가 continue-on-error 라 빌드를 실패시키지 않고 보고만 한다.
-# 스캐너는 바이너리로 직접 설치해 액션 공급망 의존을 줄인다.
+# 보안 게이트 발화 검증용. 표준 원본은 cmig-workflow/conf/workflow-templates/security-gate.yml.
+# 이 사본은 test-security-gate-cases 브랜치 push 시 발화한다. develop/upstream 미머지.
+# 경고 모드(continue-on-error) — 보고만 하고 빌드를 실패시키지 않는다.
+# 스캐너는 바이너리로 직접 설치(액션 공급망 의존 축소). SARIF는 artifact로도 업로드해 건수 확인.
 # ------------------------------------------------------------
 
 name: Security Gate
@@ -22,7 +19,7 @@ permissions:
 
 env:
   GITLEAKS_VERSION: "8.21.2"
-  TRIVY_VERSION: "0.58.1"
+  TRIVY_VERSION: "0.71.2"
 
 jobs:
   secret-scan:
@@ -34,26 +31,33 @@ jobs:
           fetch-depth: 0
       - name: Install gitleaks
         run: |
-          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tgz
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tgz
           tar -xzf gitleaks.tgz gitleaks
-      - name: Run gitleaks (redacted)
+      - name: Run gitleaks (filesystem, redacted)
         continue-on-error: true
         run: |
-          ./gitleaks detect --source . --report-format sarif --report-path gitleaks.sarif --redact --exit-code 0
-      - name: Summarize
+          ./gitleaks dir . --report-format sarif --report-path gitleaks.sarif --redact --exit-code 0
+      - name: Count + summarize
         if: always()
         run: |
           COUNT=$(jq '[.runs[].results[]] | length' gitleaks.sarif 2>/dev/null || echo "?")
+          echo "GITLEAKS_FINDINGS=$COUNT"
           {
             echo "### Security Gate — 시크릿 스캔 (gitleaks)"
             echo "- 시크릿 의심: **${COUNT}** 건"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload SARIF
+      - name: Upload SARIF (code scanning)
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gitleaks.sarif
           category: gitleaks
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-gitleaks
+          path: gitleaks.sarif
 
   go-security:
     name: Go SAST + vuln (gosec, govulncheck)
@@ -68,27 +72,36 @@ jobs:
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
           gosec -no-fail -fmt sarif -out gosec.sarif ./...
-      - name: Upload gosec SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: gosec.sarif
-          category: gosec
       - name: govulncheck (reachable vulns)
         continue-on-error: true
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./... | tee govulncheck.txt || true
-      - name: Summarize
+      - name: Count + summarize
         if: always()
         run: |
           GOSEC=$(jq '[.runs[].results[]] | length' gosec.sarif 2>/dev/null || echo "?")
           VULN=$(grep -c "Vulnerability #" govulncheck.txt 2>/dev/null || echo "0")
+          echo "GOSEC_FINDINGS=$GOSEC  GOVULN_FINDINGS=$VULN"
           {
             echo "### Security Gate — Go 정적분석/취약점"
             echo "- gosec 발견: **${GOSEC}** 건"
             echo "- govulncheck 도달 가능 취약점: **${VULN}** 건"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload SARIF (code scanning)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec.sarif
+          category: gosec
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-gosec
+          path: |
+            gosec.sarif
+            govulncheck.txt
 
   trivy:
     name: Dependencies + image CVE (Trivy)
@@ -97,24 +110,32 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Trivy
         run: |
-          curl -sSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o trivy.tgz
+          curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -o trivy.tgz
           tar -xzf trivy.tgz trivy
           sudo mv trivy /usr/local/bin/
+          trivy --version
       - name: Trivy filesystem (deps + Dockerfile misconfig + secrets)
         continue-on-error: true
         run: |
           trivy fs --scanners vuln,misconfig,secret --format sarif --output trivy-fs.sarif --exit-code 0 .
-      - name: Upload Trivy fs SARIF
+      - name: Count + summarize
+        if: always()
+        run: |
+          FS=$(jq '[.runs[].results[]] | length' trivy-fs.sarif 2>/dev/null || echo "?")
+          echo "TRIVY_FS_FINDINGS=$FS"
+          {
+            echo "### Security Gate — 의존성/Dockerfile + 시크릿 (Trivy fs)"
+            echo "- 파일시스템(의존성·구성·시크릿) 발견: **${FS}** 건"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload SARIF (code scanning)
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-fs
-      - name: Summarize
+      - name: Upload artifact
         if: always()
-        run: |
-          FS=$(jq '[.runs[].results[]] | length' trivy-fs.sarif 2>/dev/null || echo "?")
-          {
-            echo "### Security Gate — 의존성/Dockerfile + 시크릿 (Trivy fs)"
-            echo "- 파일시스템(의존성·구성·시크릿) 발견: **${FS}** 건"
-          } >> "$GITHUB_STEP_SUMMARY"
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-trivy
+          path: trivy-fs.sarif

@@ -63,10 +63,10 @@ jobs:
       - name: gosec (SAST, 경고)
         continue-on-error: true
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.27.1
           gosec -no-fail -fmt sarif -out gosec.sarif ./...
       - name: Upload gosec SARIF
-        if: always()
+        if: always() && hashFiles('gosec.sarif') != ''
         uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
         with:
           sarif_file: gosec.sarif

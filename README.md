@@ -150,6 +150,12 @@ docker compose up -d
 ✔ Container cm-ant                  Started        31.4s 
 ```
 
+> CM-ANT will not finish starting until CB-Tumblebug is initialized. For local
+> development with this compose stack — the required one-time CB-Tumblebug
+> initialization, the `.env` handling, restart behavior, and how to run the
+> local source without rebuilding the image — see the
+> [Standalone Development Environment Guide](docs/standalone-dev-environment.md).
+
 ---
 
 ##  Usage Configuration ⚙️
